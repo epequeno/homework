@@ -72,10 +72,6 @@ impl GameState {
             .collect()
     }
 
-    // fn guessed_letters(&self) -> Vec<char> {
-    //     self.filter_by_letterstate(true)
-    // }
-
     fn unguessed_letters(&self) -> Vec<char> {
         self.filter_by_letterstate(false)
     }
@@ -84,29 +80,29 @@ impl GameState {
         if self.unguessed_letters().contains(c) {
             println!("");
             self.correct_guesses.push(*c);
-            let mut ixs: Vec<usize> = self
+
+            let mut match_ixs: Vec<usize> = self
                 .secret_words_chars
                 .iter()
                 .enumerate()
-                .filter(|(_, l)| *l == c)
-                .map(|(ix, _)| ix)
+                .filter_map(|(ix, l)| if *l == *c { Some(ix) } else { None })
                 .collect();
 
-            if ixs.len() > 1 {
+            if match_ixs.len() > 1 {
                 let mut rng = rand::thread_rng();
-                ixs.shuffle(&mut rng);
+                match_ixs.shuffle(&mut rng);
             }
 
-            let mut ix_to_change: usize = 0;
-            for ix in ixs {
-                match self.board[ix] {
-                    LetterState::Guessed => continue,
-                    LetterState::NotGuessed => {
-                        ix_to_change = ix;
-                        break;
-                    }
-                }
-            }
+            let ix_to_change: usize = match_ixs
+                .iter()
+                .skip_while(|ix| match self.board[**ix] {
+                    LetterState::Guessed => true,
+                    LetterState::NotGuessed => false,
+                })
+                .cloned()
+                .take(1)
+                .next()
+                .unwrap();
 
             self.board[ix_to_change] = LetterState::Guessed;
             GuessResult::Correct
@@ -124,13 +120,13 @@ impl GameState {
 The word so far is {}
 You have guessed the following letters: {}
 You have {} guesses left",
-            self.board_to_string(),
+            self.redacted_board(),
             self.correct_guesses.iter().collect::<String>(),
             self.remaining_guesses
         );
     }
 
-    fn board_to_string(&self) -> String {
+    fn redacted_board(&self) -> String {
         self.secret_words_chars
             .iter()
             .enumerate()
@@ -145,6 +141,7 @@ You have {} guesses left",
 fn main() {
     println!("Welcome to CS110L Hangman!");
     let mut game_state = GameState::new(pick_a_random_word());
+    println!("secret word: {}", game_state.secret_word);
     game_state.print_status();
 
     // main game loop
@@ -155,7 +152,7 @@ fn main() {
             break;
         }
 
-        if game_state.unguessed_letters().len() == 0 {
+        if game_state.unguessed_letters().is_empty() {
             println!("");
             println!(
                 "Congratulations you guessed the secret word: {}!",
@@ -173,7 +170,8 @@ fn main() {
             .expect("Error reading line.");
 
         let letters: Vec<char> = user_input.chars().filter(|c| c.is_alphabetic()).collect();
-        if letters.len() == 0 {
+
+        if letters.is_empty() {
             println!("I didn't get any letters!");
             continue;
         };
