@@ -141,7 +141,6 @@ You have {} guesses left",
 fn main() {
     println!("Welcome to CS110L Hangman!");
     let mut game_state = GameState::new(pick_a_random_word());
-    println!("secret word: {}", game_state.secret_word);
     game_state.print_status();
 
     // main game loop
