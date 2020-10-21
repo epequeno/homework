@@ -37,7 +37,7 @@ struct GameState {
     correct_guesses: Vec<char>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum LetterState {
     Guessed,
     NotGuessed,
@@ -81,6 +81,8 @@ impl GameState {
             println!("");
             self.correct_guesses.push(*c);
 
+            // determine the indexes from our secret word that match the given char
+            // there may be several so, collect into a Vec
             let mut match_ixs: Vec<usize> = self
                 .secret_words_chars
                 .iter()
@@ -88,20 +90,18 @@ impl GameState {
                 .filter_map(|(ix, l)| if *l == *c { Some(ix) } else { None })
                 .collect();
 
+            // to make sure we're not always revealing from one direction (left or right) we'll
+            // shuffle the indexes if there are more than one.
             if match_ixs.len() > 1 {
                 let mut rng = rand::thread_rng();
                 match_ixs.shuffle(&mut rng);
             }
 
-            let ix_to_change: usize = match_ixs
+            // we'll narrow down what we need to change by looking for any matching "spots" on the
+            // board which have _not_ been guessed yet.
+            let ix_to_change: usize = *match_ixs
                 .iter()
-                .skip_while(|ix| match self.board[**ix] {
-                    LetterState::Guessed => true,
-                    LetterState::NotGuessed => false,
-                })
-                .cloned()
-                .take(1)
-                .next()
+                .find(|ix| self.board[**ix] == LetterState::NotGuessed)
                 .unwrap();
 
             self.board[ix_to_change] = LetterState::Guessed;
