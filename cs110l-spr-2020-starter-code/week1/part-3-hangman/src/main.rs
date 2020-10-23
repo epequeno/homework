@@ -39,8 +39,8 @@ struct GameState {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum LetterState {
-    Guessed,
-    NotGuessed,
+    Visible,
+    NotVisible,
 }
 
 #[derive(Clone, Debug)]
@@ -52,7 +52,7 @@ enum GuessResult {
 impl GameState {
     pub fn new(secret_word: String) -> GameState {
         GameState {
-            board: vec![LetterState::NotGuessed; secret_word.len()],
+            board: vec![LetterState::NotVisible; secret_word.len()],
             secret_word: secret_word.clone(),
             secret_words_chars: secret_word.chars().collect(),
             remaining_guesses: NUM_INCORRECT_GUESSES,
@@ -60,13 +60,13 @@ impl GameState {
         }
     }
 
-    fn filter_by_letterstate(&self, guessed: bool) -> Vec<char> {
+    fn filter_by_letterstate(&self, visible: bool) -> Vec<char> {
         self.secret_words_chars
             .iter()
             .enumerate()
             .filter(|(ix, _)| match self.board[*ix] {
-                LetterState::Guessed => guessed,
-                LetterState::NotGuessed => !guessed,
+                LetterState::Visible => visible,
+                LetterState::NotVisible => !visible,
             })
             .map(|(_, l)| *l)
             .collect()
@@ -98,13 +98,13 @@ impl GameState {
             }
 
             // we'll narrow down what we need to change by looking for any matching "spots" on the
-            // board which have _not_ been guessed yet.
+            // board which are _not_ visible.
             let ix_to_change: usize = *match_ixs
                 .iter()
-                .find(|ix| self.board[**ix] == LetterState::NotGuessed)
+                .find(|ix| self.board[**ix] == LetterState::NotVisible)
                 .unwrap();
 
-            self.board[ix_to_change] = LetterState::Guessed;
+            self.board[ix_to_change] = LetterState::Visible;
             GuessResult::Correct
         } else {
             println!("Sorry, that letter is not in the word");
@@ -131,8 +131,8 @@ You have {} guesses left",
             .iter()
             .enumerate()
             .map(|(ix, l)| match self.board[ix] {
-                LetterState::Guessed => l,
-                LetterState::NotGuessed => &'-',
+                LetterState::Visible => l,
+                LetterState::NotVisible => &'-',
             })
             .collect()
     }
@@ -176,9 +176,9 @@ fn main() {
         };
 
         // at this point we know we have a vec of letters of length >= 1, the unwrap on nth is (probably) ok here.
-        let guessed_letter = letters.iter().nth(0).unwrap();
-
-        game_state.guess(guessed_letter);
-        game_state.print_status();
+        if let Some(guessed_letter) = letters.iter().nth(0) {
+            game_state.guess(guessed_letter);
+            game_state.print_status();
+        }
     }
 }
