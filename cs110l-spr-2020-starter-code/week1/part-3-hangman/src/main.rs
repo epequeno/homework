@@ -60,20 +60,22 @@ impl GameState {
         }
     }
 
-    fn filter_by_letterstate(&self, visible: bool) -> Vec<char> {
+    fn filter_by_letterstate(&self, filter: LetterState) -> Vec<char> {
         self.secret_words_chars
             .iter()
             .enumerate()
-            .filter(|(ix, _)| match self.board[*ix] {
-                LetterState::Visible => visible,
-                LetterState::NotVisible => !visible,
+            .filter_map(|(ix, l)| {
+                if self.board[ix] == filter {
+                    Some(*l)
+                } else {
+                    None
+                }
             })
-            .map(|(_, l)| *l)
             .collect()
     }
 
     fn unguessed_letters(&self) -> Vec<char> {
-        self.filter_by_letterstate(false)
+        self.filter_by_letterstate(LetterState::NotVisible)
     }
 
     fn guess(&mut self, c: &char) -> GuessResult {
